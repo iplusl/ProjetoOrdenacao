@@ -1,11 +1,13 @@
 package view;
 
 import controller.*;
+import model.*;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferStrategy;
 import java.awt.image.BufferedImage;
+import java.util.LinkedList;
 
 public class Ordenador extends Canvas implements Runnable {
 
@@ -17,16 +19,17 @@ public class Ordenador extends Canvas implements Runnable {
     private final int height = 600;
     private BufferedImage image;
 
-    private int[] alturas;
+    private Node[] alturas;
+    private LinkedList todosPassos;
     private Controller controller;
 
+    //construtor que inicializará as variaveis utilizadas para a interface e sorteia os numeros para o grafico
     public Ordenador(){
         setPreferredSize(new Dimension(width, height));
         startFrame();
         image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
         controller = new Controller();
         controller.sorteiaNum();
-        alturas = controller.getNumeros();
     }
 
     public void startFrame(){
@@ -44,12 +47,14 @@ public class Ordenador extends Canvas implements Runnable {
         ordenador.start();
     }
 
+    //metodo proprio da thread para inicializar a execucao da thread
     public synchronized void start(){
         isRunning = true;
         thread = new Thread(this);
         thread.start();
     }
 
+    ////metodo proprio da thread para encerrar a execucao da thread
     public synchronized  void stop(){
         isRunning = false;
         try {
@@ -59,14 +64,19 @@ public class Ordenador extends Canvas implements Runnable {
         }
     }
 
+    //este metodo sera chamado dentro do loop da thread
     public void tick(){
         //Atualiza as informações do grafico
 
-        this.alturas = controller.getNumeros();
-        controller.bubbleSort();
-
+        if(todosPassos == null){
+            todosPassos = controller.getTodosPassos();
+        }else if (!todosPassos.isEmpty()){
+            alturas = (Node[])todosPassos.pollLast();
+        }
     }
 
+
+    //este metodo sera chamado dentro do loop da thread e renderiza as coisas na tela
     public void render(){
         //Renderiza o grafico na tela
         BufferStrategy bs = this.getBufferStrategy();
@@ -78,12 +88,13 @@ public class Ordenador extends Canvas implements Runnable {
         g.setColor(Color.WHITE);
         g.fillRect(0, 0, width, height);
 
-        g.setColor(Color.RED);
+
 
         double escala = 5.8;
         int j = 0;
         for(double i = 10; i < width-11; i += 7.8){
-            g.fillRect((int) i, (int) (height-(10+(alturas[j]*escala))), (int) 6.5, (int)(alturas[j]*escala));
+            g.setColor(alturas[j].getCor());
+            g.fillRect((int) i, (int) (height-(10+(alturas[j].getAltura()*escala))), (int) 6.5, (int)(alturas[j].getAltura()*escala));
             j++;
         }
 
@@ -97,6 +108,7 @@ public class Ordenador extends Canvas implements Runnable {
         bs.show();
     }
 
+    //metodo proprio da thread para ficar no looping infinito
     public void run() {
         while(isRunning){
             tick();
